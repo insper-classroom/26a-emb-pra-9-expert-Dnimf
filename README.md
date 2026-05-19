@@ -3,7 +3,7 @@
 | WCET |	20.06548 ms |	10.00804 ms |	40.00532 ms |	
 | Jitter | 0,0282 ms | 0,004 ms |	0,00068 ms |
 | Deadline Miss Rate	| 100 % | 100%* |	100% ** |		
-| Stack Usage |
+| Stack Usage | 0.9033203125 | 4.4677734375% | 0.830078125% | 0.78125% |
 
 *ou 0% porque todas as ultrapasagens foram menores doque 0.01ms 
 ** depende pq se contar todos vtaskdelay tem que ter muito mais mas se for for o q estao executando,
