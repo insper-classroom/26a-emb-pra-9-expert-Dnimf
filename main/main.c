@@ -18,6 +18,8 @@
 #define UART_ID uart0
 #define BAUD_RATE 115200
 
+#define CORE_0 (1 << 0)
+#define CORE_1 (1 << 1)
 QueueHandle_t xQueueMPU;
 QueueHandle_t xQueuePos;
 QueueHandle_t xQueueColor;
@@ -34,7 +36,6 @@ const int MPU_PIN = 16;
 const int FUSION_PIN = 17;
 const int UART_PIN = 18;
 const int PWM_PIN = 19;
-
 
 typedef struct {
     /* data */
@@ -109,7 +110,7 @@ void mpu6050_task(void *p) {
         xQueueSend(xQueueMPU, &dads, 0);
         gpio_put(MPU_PIN, 0);
 
-        vTaskDelay(pdMS_TO_TICKS(10));
+        vTaskDelay(pdMS_TO_TICKS(30));
     }
 }
 void fusion_task(void *p) {
@@ -118,7 +119,7 @@ void fusion_task(void *p) {
     FusionAhrs ahrs;
     FusionAhrsInitialise(&ahrs);
     while (true) {
-        gpio_put(FUSION_PIN,1);
+        gpio_put(FUSION_PIN, 1);
         if (xQueueReceive(xQueueMPU, &dados1, 0)) {
             FusionVector gyroscope = {
                 .axis.x = dados1.gyro[0] / 131.0f, // Conversão para graus/s
@@ -198,7 +199,7 @@ void fusion_task(void *p) {
             }
             xQueueOverwrite(xQueueColor, &color);
         }
-        gpio_put(FUSION_PIN,0);
+        gpio_put(FUSION_PIN, 0);
         vTaskDelay(pdMS_TO_TICKS(50));
     }
 }
@@ -224,7 +225,7 @@ void pwm_task(void *p) {
     pwm_set_chan_level(slice_num_2, PWM_CHAN_A, 2);
     pwm_set_enabled(slice_num_2, true);
     while (true) {
-        gpio_put(PWM_PIN,1);
+        gpio_put(PWM_PIN, 1);
         cor corzinha;
         if (xQueueReceive(xQueueColor, &corzinha, 0)) {
             if (corzinha.color == 1) {
@@ -239,17 +240,17 @@ void pwm_task(void *p) {
                 pwm_set_chan_level(slice_num_1, PWM_CHAN_B, corzinha.proporcao);
                 pwm_set_enabled(slice_num_1, true);
             }
-            vTaskDelay(pdMS_TO_TICKS(10));
+            vTaskDelay(pdMS_TO_TICKS(20));
         }
-        gpio_put(PWM_PIN,0);
-        vTaskDelay(pdMS_TO_TICKS(10));
+        gpio_put(PWM_PIN, 0);
+        vTaskDelay(pdMS_TO_TICKS(20));
     }
 }
 
 void uart_task(void *p) {
 
     while (1) {
-        gpio_put(UART_PIN,1);
+        gpio_put(UART_PIN, 1);
         angulos ang;
         if (xSemaphoreTake(xSemaphoreBtn, pdMS_TO_TICKS(20)) == pdTRUE) {
             uart_putc(UART_ID, 2);
@@ -276,12 +277,12 @@ void uart_task(void *p) {
             uart_putc(UART_ID, -1);
             vTaskDelay(pdMS_TO_TICKS(10));
         }
-        gpio_put(UART_PIN,0);
-        vTaskDelay(pdMS_TO_TICKS(20));
+        gpio_put(UART_PIN, 0);
+        vTaskDelay(pdMS_TO_TICKS(30));
     }
 }
 
-void stack_monitor_task(void* p) {
+void stack_monitor_task(void *p) {
     static TaskStatus_t tasks[16];
     while (true) {
         vTaskDelay(pdMS_TO_TICKS(2000));
@@ -314,12 +315,20 @@ int main() {
     xQueuePos = xQueueCreate(1, sizeof(angulos));
     xQueueColor = xQueueCreate(1, sizeof(cor));
     xSemaphoreBtn = xSemaphoreCreateBinary();
-    xTaskCreate(mpu6050_task, "mpu6050_Task 1", 8192, NULL, 1, NULL);
-    xTaskCreate(fusion_task, "fusion 1", 4096, NULL, 1, NULL);
-    xTaskCreate(uart_task, "uart 1", 4096, NULL, 1, NULL);
-    xTaskCreate(pwm_task, "pwm_task 1", 4096, NULL, 1, NULL);
-    xTaskCreate(stack_monitor_task, "stak 1", 4096, NULL, 1, NULL);
 
+    TaskHandle_t xHandle1;
+    TaskHandle_t xHandle2;
+    TaskHandle_t xHandle3;
+    TaskHandle_t xHandle4;
+    xTaskCreate(mpu6050_task, "mpu6050_Task 1", 8192, NULL, 1, &( xHandle1));
+    xTaskCreate(fusion_task, "fusion 1", 2048, NULL, 1, &( xHandle2));
+    xTaskCreate(uart_task, "uart 1", 2048, NULL, 1, &( xHandle3));
+    xTaskCreate(pwm_task, "pwm_task 1", 2048, NULL, 1, &( xHandle4));
+    xTaskCreate(stack_monitor_task, "stackk 1", 4096, NULL, 1, NULL);
+    vTaskCoreAffinitySet( xHandle1, CORE_1 );
+    vTaskCoreAffinitySet( xHandle2, CORE_0 );
+    vTaskCoreAffinitySet( xHandle4, CORE_0 );
+    vTaskCoreAffinitySet( xHandle3, CORE_0 );
     vTaskStartScheduler();
 
     while (true)
