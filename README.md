@@ -12,6 +12,8 @@
 | Jitter | 0,0282 ms | 0,004 ms |	0,00068 ms |
 | Deadline Miss Rate	| 100 % | 0% |	100% ** |		
 | Stack Usage | 0.9033203125 | 4.4677734375% | 0.830078125% | 0.78125% |
+
+
 ** depende pq se contar todos vtaskdelay tem que ter muito mais mas se for for o q estao executando,
 mpu_task
 
